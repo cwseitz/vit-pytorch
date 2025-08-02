@@ -19,7 +19,7 @@ from sklearn.model_selection import train_test_split
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 from vit_pytorch.efficient import ViT
 
@@ -40,7 +40,7 @@ data_transforms = {
     "test": transforms.Compose([transforms.ToTensor()]),
 }
 
-data_dir = "/media/cwseitz/HDD2/ImageNet/tiny-imagenet-200/"
+data_dir = "/N/slate/cwseitz/ImageNet/tiny-imagenet-200/"
 num_workers = {"train": 2, "val": 0, "test": 0}
 image_datasets = {
     x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ["train", "val", "test"]

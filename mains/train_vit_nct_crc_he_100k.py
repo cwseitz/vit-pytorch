@@ -17,11 +17,11 @@ from linformer import Linformer
 from PIL import Image
 from sklearn.model_selection import train_test_split
 from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import datasets, transforms
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
-from vit_pytorch.efficient import ViT
+from vit_pytorch.vit import ViT
 
 print(f"Torch: {torch.__version__}")
 
@@ -34,40 +34,31 @@ def seed_everything(seed):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
 
-data_transforms = {
-    "train": transforms.Compose([transforms.ToTensor()]),
-    "val": transforms.Compose([transforms.ToTensor()]),
-    "test": transforms.Compose([transforms.ToTensor()]),
-}
+transform = transforms.Compose([transforms.ToTensor()])
 
-data_dir = "/N/slate/cwseitz/ImageNet/tiny-imagenet-200/"
-num_workers = {"train": 2, "val": 0, "test": 0}
-image_datasets = {
-    x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ["train", "val", "test"]
-}
+data_dir = "/media/cwseitz/HDD2/NCT-CRC-HE-100K/"
+nct_crc_he_100k = datasets.ImageFolder(data_dir,transform)
+
+train_size = int(0.8*len(nct_crc_he_100k))
+valid_size = len(nct_crc_he_100k) - train_size
+train_dataset, val_dataset = random_split(nct_crc_he_100k, [train_size, valid_size])
+num_classes = len(nct_crc_he_100k.classes)
+
 dataloaders = {
-    x: torch.utils.data.DataLoader(image_datasets[x], batch_size=50, shuffle=True, num_workers=num_workers[x])
-    for x in ["train", "val", "test"]
+    'train': DataLoader(train_dataset, batch_size=50, shuffle=True, num_workers=1),
+    'val': DataLoader(val_dataset, batch_size=50, shuffle=True, num_workers=1)
 }
-dataset_sizes = {x: len(image_datasets[x]) for x in ["train", "val", "test"]}
-num_classes = len(image_datasets['val'].classes)
-
 
 device = 'cpu'
-efficient_transformer = Linformer(
-    dim=128,
-    seq_len=64+1,  # 8x8 patches + 1 cls-token for 64x64 image with 8x8 patches
-    depth=12,
-    heads=8,
-    k=64
-)
 
 model = ViT(
-    dim=128,
-    image_size=64,
+    image_size=224,
     patch_size=8,
     num_classes=num_classes,
-    transformer=efficient_transformer,
+    depth=3, #number of transformer blocks (layers)
+    dim=128, #embedding dimension
+    heads=8,
+    mlp_dim=512,
     channels=3,
 ).to(device)
 
@@ -77,6 +68,7 @@ lr = 3e-5
 gamma = 0.7
 seed = 42
 seed_everything(seed)
+
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=lr)

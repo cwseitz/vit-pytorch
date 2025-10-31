@@ -12,4 +12,4 @@
 
 module load conda
 conda activate spatial
-python train_vit_tiny_imnet.py
+python train_vit_nct_crc_he_100k.py
